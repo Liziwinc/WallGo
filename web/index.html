@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WallGo — Pastebin Clone</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121214;
+            color: #e1e1e6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2 { color: #04d361; }
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        textarea {
+            background-color: #202024;
+            border: 1px solid #29292e;
+            color: #e1e1e6;
+            padding: 12px;
+            border-radius: 5px;
+            resize: vertical;
+            font-size: 16px;
+            height: 120px;
+        }
+        select, button {
+            background-color: #202024;
+            border: 1px solid #29292e;
+            color: #e1e1e6;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        button {
+            background-color: #04d361;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: none;
+        }
+        button:hover { background-color: #02a74b; }
+        .post-card {
+            background-color: #202024;
+            border: 1px solid #29292e;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .post-meta {
+            font-size: 12px;
+            color: #7c7c8a;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .post-link {
+            color: #04d361;
+            text-decoration: none;
+        }
+        .post-link:hover { text-decoration: underline; }
+        .hidden { display: none !important; }
+        .nav-link {
+            color: #7c7c8a;
+            cursor: pointer;
+            text-decoration: underline;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        .nav-link:hover { color: #e1e1e6; }
+    </style>
+</head>
+<body>
+
+    <div id="nav-back" class="nav-link hidden" onclick="navigateToHome()">← На главную</div>
+
+    <h1>WallGo</h1>
+    <p id="service-desc">Сервис анонимных публикаций</p>
+
+    <div id="create-section" class="form-group">
+        <label for="content">Новая публикация:</label>
+        <textarea id="content" placeholder="Введите ваш текст здесь..."></textarea>
+        
+        <label for="ttl">Время жизни поста:</label>
+        <select id="ttl">
+            <option value="0">Вечно</option>
+            <option value="1">1 минута</option>
+            <option value="5">5 минут</option>
+            <option value="60">1 час</option>
+        </select>
+        
+        <button id="submit-btn" onclick="createPost()">Опубликовать</button>
+    </div>
+
+    <h2 id="section-title">Последние публикации</h2>
+    <div id="posts-list">
+        </div>
+
+    <script>
+        // Слушаем изменение URL или полную загрузку страницы
+        window.onload = route;
+        window.onpopstate = route;
+
+        function route() {
+            const path = window.location.pathname;
+            
+            // Проверяем, соответствует ли URL маске /posts/{hash}
+            const postMatch = path.match(/^\/posts\/([a-zA-Z0-9]+)$/);
+
+            if (postMatch) {
+                const hash = postMatch[1];
+                showSinglePostView(hash);
+            } else {
+                showHomeView();
+            }
+        }
+
+        function showHomeView() {
+            document.getElementById('nav-back').classList.add('hidden');
+            document.getElementById('create-section').classList.remove('hidden');
+            document.getElementById('service-desc').classList.remove('hidden');
+            document.getElementById('section-title').innerText = 'Последние публикации';
+            loadPosts();
+        }
+
+        function showSinglePostView(hash) {
+            document.getElementById('nav-back').classList.remove('hidden');
+            document.getElementById('create-section').classList.add('hidden');
+            document.getElementById('service-desc').classList.add('hidden');
+            document.getElementById('section-title').innerText = `Публикация /${hash}`;
+            loadSinglePost(hash);
+        }
+
+        function navigateToHome() {
+            window.history.pushState({}, '', '/');
+            route();
+        }
+
+        function handlePostClick(event, hash) {
+            event.preventDefault();
+            window.history.pushState({}, '', `/posts/${hash}`);
+            route();
+        }
+
+        // Получение одного поста по хэшу
+        function loadSinglePost(hash) {
+            const listDiv = document.getElementById('posts-list');
+            listDiv.innerHTML = '<p style="color: #7c7c8a;">Загрузка...</p>';
+
+            fetch(`/posts/${hash}`)
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 404) throw new Error('Пост не найден или его срок жизни истек');
+                        throw new Error('Ошибка сервера при加载поста');
+                    }
+                    return response.json();
+                })
+                .then(post => {
+                    listDiv.innerHTML = '';
+                    const card = document.createElement('div');
+                    card.className = 'post-card';
+                    
+                    // Возвращаем маленькие буквы и snake_case
+                    const date = new Date(post.created_at).toLocaleString();
+                    const expires = post.expires_at ? new Date(post.expires_at).toLocaleString() : 'Вечно';
+
+                    card.innerHTML = `
+                        <div style="white-space: pre-wrap; font-size: 18px;">${escapeHtml(post.content)}</div>
+                        <div class="post-meta">
+                            <span>Создан: ${date} | Истекает: ${expires}</span>
+                        </div>
+                    `;
+                    listDiv.appendChild(card);
+                })
+                .catch(err => {
+                    listDiv.innerHTML = `<p style="color: #ff4a4a;">${err.message}</p>`;
+                });
+        }
+
+        // Загрузка списка постов (GET /posts)
+        function loadPosts() {
+            fetch('/posts?limit=10&offset=0')
+                .then(response => {
+                    if (!response.ok) throw new Error('Ошибка при загрузке списков');
+                    return response.json();
+                })
+                .then(posts => {
+                    const listDiv = document.getElementById('posts-list');
+                    listDiv.innerHTML = '';
+                    
+                    if (!posts || posts.length === 0) {
+                        listDiv.innerHTML = '<p style="color: #7c7c8a;">Постов пока нет...</p>';
+                        return;
+                    }
+
+                    posts.forEach(post => {
+                        const card = document.createElement('div');
+                        card.className = 'post-card';
+                        
+                        // Возвращаем маленькие буквы и snake_case
+                        const date = new Date(post.created_at).toLocaleString();
+
+                        card.innerHTML = `
+                            <div style="white-space: pre-wrap;">${escapeHtml(post.content)}</div>
+                            <div class="post-meta">
+                                <span>Ссылка: <a class="post-link" href="/posts/${post.hash}" onclick="handlePostClick(event, '${post.hash}')">/${post.hash}</a></span>
+                                <span>Создан: ${date}</span>
+                            </div>
+                        `;
+                        listDiv.appendChild(card);
+                    });
+                })
+                .catch(err => console.error(err));
+        }
+
+        // Создание поста (POST /posts)
+        function createPost() {
+            const contentField = document.getElementById('content');
+            const ttlField = document.getElementById('ttl');
+            
+            const content = contentField.value.trim();
+            if (!content) {
+                alert('Нельзя отправить пустой текст');
+                return;
+            }
+
+            let expiresAt = null;
+            const ttlMinutes = parseInt(ttlField.value);
+            if (ttlMinutes > 0) {
+                const now = new Date();
+                expiresAt = new Date(now.getTime() + ttlMinutes * 60000).toISOString();
+            }
+
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+
+            fetch('/posts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: content, expires_at: expiresAt })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Ошибка сервера при создании поста');
+                return response.json();
+            })
+            .then(newPost => {
+                contentField.value = '';
+                loadPosts();
+            })
+            .catch(err => alert(err.message))
+            .finally(() => btn.disabled = false);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+</body>
+</html>

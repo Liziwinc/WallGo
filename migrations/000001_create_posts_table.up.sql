@@ -1,0 +1,7 @@
+CREATE TABLE post (
+  id BIGSERIAL PRIMARY KEY
+  , hash VARCHAR(6) UNIQUE NOT NULL
+  , content TEXT 
+  , created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  , expires_at TIMESTAMPTZ
+)
