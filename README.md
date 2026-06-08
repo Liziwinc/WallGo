@@ -1,19 +1,9 @@
-# WallGo 🚀
+# WallGo
 
-Легковесный, высокопроизводительный сервис для публикации и обмена постами (микроблогинг), написанный на Go с упором на чистую архитектуру, кэширование и современный DevOps-пайплайн.
+Легковесный сервис для публикации и обмена постами (микроблогинг), написанный на Go с упором на чистую архитектуру и кэширование.
 
 ---
 
-## ⚡ Быстрый запуск одной командой (Zero-Install)
-
-Вам **не нужно** клонировать репозиторий, устанавливать Go, базы данных или компилировать код. Если на вашем компьютере установлен Docker, просто скопируйте и запустите эту команду в терминале:
-
-```bash
-curl -sSL [https://raw.githubusercontent.com/liziwinc/WallGo/main/docker-compose.yml](https://raw.githubusercontent.com/liziwinc/WallGo/main/docker-compose.yml) | docker compose -f - up -d
-
-```
-
-После этого приложение автоматически развернет всё окружение, скачает готовый бинарник из Docker Hub и будет доступно по адресу: **http://localhost:8080**
 
 ## 🛠 Технологический стек
 
@@ -43,27 +33,24 @@ curl -sSL [https://raw.githubusercontent.com/liziwinc/WallGo/main/docker-compose
 
 ---
 
-## 🛠 Альтернативный запуск (Разработка)
+## 🛠 Запуск
 
 Если вы хотите скачать исходный код и запустить проект локально:
 
 1. Клонируйте репозиторий:
 ```bash
-git clone [https://github.com/liziwinc/WallGo.git](https://github.com/liziwinc/WallGo.git)
+git clone https://github.com/liziwinc/WallGo.git
 cd WallGo
-
 ```
 
 
 2. Запустите инфраструктуру:
 ```bash
 docker compose up -d
-
 ```
 
 
 3. Для остановки сервисов и удаления контейнеров:
 ```bash
 docker compose down
-
 ```
